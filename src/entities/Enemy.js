@@ -2,6 +2,9 @@ import { GameConfig } from '../config/GameConfig.js';
 
 export default class Enemy {
     constructor(x, y, type) {
+        const scaling = 1 + (time / 300); // Stats increase by 20% every minute
+    this.hp = Math.floor(baseHp[type] * scaling);
+    this.speed = baseSpeed[type] * (1 + (time / 600));
         this.x = x; this.y = y;
         this.type = type;
         this.stats = GameConfig.enemies[type];
