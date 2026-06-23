@@ -1,4 +1,5 @@
 import { GameConfig } from '../config/GameConfig.js';
+import { SpriteManager } from '../core/SpriteManager.js';
 
 export default class Player {
     constructor(x, y) {
@@ -47,12 +48,13 @@ export default class Player {
     }
 
     draw(ctx, camera) {
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(960 - 20, 540 - 20, 40, 40);
+        const sprite = SpriteManager.cache['player'];
+        const size = 80;
+        ctx.drawImage(sprite, 960 - size / 2, 540 - size / 2, size, size);
         
         ctx.fillStyle = 'red';
-        ctx.fillRect(960 - 30, 540 - 40, 60, 5);
+        ctx.fillRect(960 - 40, 540 - 60, 80, 8);
         ctx.fillStyle = 'lime';
-        ctx.fillRect(960 - 30, 540 - 40, 60 * (this.hp / this.maxHp), 5);
+        ctx.fillRect(960 - 40, 540 - 60, 80 * (this.hp / this.maxHp), 8);
     }
 }
