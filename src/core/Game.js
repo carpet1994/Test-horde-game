@@ -1,11 +1,14 @@
 import { GameConfig } from '../config/GameConfig.js';
 import { EVOLUTION_DATA } from '../config/EvolutionConfig.js';
 import { StorageManager } from './StorageManager.js';
+import { AudioManager } from './AudioManager.js';
 import Player from '../entities/Player.js';
 import Input from './Input.js';
 import WeaponManager from '../systems/WeaponSystem.js';
 import Spawner from '../systems/Spawner.js';
 import CollisionSystem from '../systems/CollisionSystem.js';
+import Map from './Map.js';
+import ParticleSystem from '../systems/ParticleSystem.js';
 import { getChoices } from '../systems/UpgradeManager.js';
 
 export default class Game {
@@ -16,9 +19,11 @@ export default class Game {
         this.canvas.height = GameConfig.resolution.height;
 
         this.input = new Input();
-        this.player = new Player(960, 540);
+        this.player = new Player(0, 0);
+        this.map = new Map(5000, 5000);
         this.weaponManager = new WeaponManager();
         this.spawner = new Spawner();
+        this.particles = new ParticleSystem();
         this.onGameOver = onGameOver;
         
         this.enemies = [];
@@ -34,6 +39,7 @@ export default class Game {
         this.gameOver = false;
         this.currentChoices = [];
         this.evolutionAvailable = null;
+        this.shake = 0;
     }
 
     start() {
@@ -55,9 +61,12 @@ export default class Game {
 
     update(dt) {
         this.survivalTimer += dt;
+        if (this.shake > 0) this.shake -= dt * 5;
+
         this.player.update(dt, this.input);
         this.spawner.update(dt, this.enemies, this.player, this.survivalTimer);
         this.weaponManager.update(dt, this.player, this.enemies);
+        this.particles.update(dt);
         CollisionSystem.update(this);
         
         if (this.player.hp <= 0) {
@@ -68,6 +77,8 @@ export default class Game {
             gem.update(dt, this.player);
             if (Math.hypot(gem.x - this.player.x, gem.y - this.player.y) < 40) {
                 this.player.addXP(gem.value);
+                this.particles.emit(gem.x, gem.y, '#00ff00', 5);
+                AudioManager.play('pickup');
                 this.gems.splice(i, 1);
                 if (this.player.checkLevelUp()) this.triggerLevelUp();
             }
@@ -76,67 +87,38 @@ export default class Game {
         this.chests.forEach((chest, i) => {
             if (Math.hypot(chest.x - this.player.x, chest.y - this.player.y) < 60) {
                 this.triggerChestReward();
+                this.shake = 10;
+                AudioManager.play('chest');
                 this.chests.splice(i, 1);
             }
         });
     }
-import { GameConfig } from '../config/GameConfig.js';
-import { EVOLUTION_DATA } from '../config/EvolutionConfig.js';
-import { StorageManager } from './StorageManager.js';
-import Player from '../entities/Player.js';
-import Input from './Input.js';
-import WeaponManager from '../systems/WeaponSystem.js';
-import Spawner from '../systems/Spawner.js';
-import CollisionSystem from '../systems/CollisionSystem.js';
-import Map from './Map.js';
-import { getChoices } from '../systems/UpgradeManager.js';
 
-export default class Game {
-    constructor(canvasId, onGameOver) {
-        this.canvas = document.getElementById(canvasId);
-        this.ctx = this.canvas.getContext('2d');
-        this.canvas.width = GameConfig.resolution.width;
-        this.canvas.height = GameConfig.resolution.height;
+    triggerLevelUp() {
+        this.isLevelingUp = true;
+        AudioManager.play('levelUp');
+        this.currentChoices = getChoices(this.player, this.weaponManager);
+    }
 
-        this.input = new Input();
-        this.player = new Player(0, 0);
-        this.map = new Map(5000, 5000);
-        this.weaponManager = new WeaponManager();
-        this.spawner = new Spawner();
-        this.onGameOver = onGameOver;
-        
-        this.enemies = [];
-        this.gems = [];
-        this.chests = [];
-        this.runStats = { time: 0, kills: 0, bosses: 0, earnedCoins: 0 };
-        
-        this.survivalTimer = 0;
-        this.lastTime = 0;
-        this.running = true;
-        this.isLevelingUp = false;
-        this.isChestState = false;
-        this.gameOver = false;
-        this.currentChoices = [];
+    triggerChestReward() {
+        this.isChestState = true;
         this.evolutionAvailable = null;
+        for (const [id, data] of Object.entries(EVOLUTION_DATA)) {
+            const w = this.weaponManager.weapons.find(wp => wp.id === id);
+            if (w && w.level === 8 && this.player.passives[data.passive] >= 1) {
+                this.evolutionAvailable = id;
+                break;
+            }
+        }
     }
 
-    start() { requestAnimationFrame(this.loop.bind(this)); }
-
-    loop(timestamp) {
-        let dt = Math.min((timestamp - this.lastTime) / 1000, 0.1);
-        this.lastTime = timestamp;
-        if (this.running && !this.isLevelingUp && !this.isChestState) this.update(dt);
-        this.draw();
-        if (this.running) requestAnimationFrame(this.loop.bind(this));
-    }
-
-    update(dt) {
-        this.survivalTimer += dt;
-        this.player.update(dt, this.input);
-        this.spawner.update(dt, this.enemies, this.player, this.survivalTimer);
-        this.weaponManager.update(dt, this.player, this.enemies);
-        CollisionSystem.update(this);
-        if (this.player.hp <= 0) this.triggerGameOver();
+    handleChestClaim() {
+        if (this.evolutionAvailable) {
+            this.weaponManager.evolveWeapon(this.evolutionAvailable);
+            this.shake = 20;
+            AudioManager.play('evolve');
+        }
+        this.isChestState = false;
     }
 
     triggerGameOver() {
@@ -146,12 +128,13 @@ export default class Game {
         const data = StorageManager.load();
         data.coins += this.runStats.earnedCoins;
         StorageManager.save(data);
+        AudioManager.play('gameOver');
         this.onGameOver(this.runStats);
     }
 
     draw() {
-        let camX = this.player.x - 960;
-        let camY = this.player.y - 540;
+        let camX = this.player.x - 960 + (Math.random() - 0.5) * this.shake;
+        let camY = this.player.y - 540 + (Math.random() - 0.5) * this.shake;
         let camera = { x: camX, y: camY };
 
         this.ctx.fillStyle = '#000';
@@ -162,13 +145,27 @@ export default class Game {
         this.enemies.forEach(e => e.draw(this.ctx, camera));
         this.gems.forEach(g => g.draw(this.ctx, camera));
         this.chests.forEach(c => c.draw(this.ctx, camera));
+        this.particles.draw(this.ctx, camera);
         this.weaponManager.draw(this.ctx, camera);
         
+        this.drawUI();
+        if (this.player.hp < this.player.maxHp * 0.25) this.drawVignette();
         if (this.isLevelingUp) this.drawLevelUpMenu();
         if (this.isChestState) this.drawChestScreen();
         if (this.gameOver) this.drawGameOver();
     }
-    
+
+    drawUI() {
+        this.ctx.fillStyle = 'white';
+        this.ctx.font = '30px Arial';
+        this.ctx.fillText(`Coins: ${this.runStats.earnedCoins}`, 1700, 50);
+        this.ctx.fillText(`Time: ${Math.floor(this.survivalTimer)}s`, 50, 50);
+    }
+
+    drawVignette() {
+        this.ctx.fillStyle = 'rgba(255, 0, 0, 0.2)';
+        this.ctx.fillRect(0, 0, 1920, 1080);
+    }
 
     drawLevelUpMenu() {
         this.ctx.fillStyle = 'rgba(0,0,0,0.9)';
@@ -196,6 +193,7 @@ export default class Game {
         this.ctx.fillStyle = 'white';
         this.ctx.textAlign = 'center';
         this.ctx.fillText('GAME OVER', 960, 540);
-        this.ctx.fillText(`Total Coins Earned: ${this.runStats.earnedCoins}`, 960, 640);
+        this.ctx.fillText(`Total Coins: ${this.runStats.earnedCoins}`, 960, 640);
     }
-            }
+    }
+                                       
