@@ -6,11 +6,10 @@ export default class Spawner {
     constructor() {
         this.timer = 0;
         this.bossTimer = 0;
-        this.spawnCount = 0;
+        this.bossSpawnedAt = {};
     }
 
     update(dt, enemies, player, survivalTimer) {
-        // Performance Cap: Do not spawn if there are too many enemies
         if (enemies.length > 200) return;
 
         this.timer += dt;
@@ -18,33 +17,29 @@ export default class Spawner {
 
         const wave = this.getCurrentWave(survivalTimer);
 
-        // Spawn logic
         if (this.timer >= wave.spawnDelay) {
             this.spawnNormalEnemy(enemies, player, wave, survivalTimer);
             this.timer = 0;
         }
 
-        // Boss logic: Attempt to spawn boss every 120 seconds
-        if (this.bossTimer >= 120) {
+        if (Math.floor(survivalTimer) % 120 === 0 && survivalTimer > 10 && !this.bossSpawnedAt[Math.floor(survivalTimer)]) {
             this.spawnBoss(enemies, player, survivalTimer);
-            this.bossTimer = 0;
+            this.bossSpawnedAt[Math.floor(survivalTimer)] = true;
         }
     }
 
     spawnNormalEnemy(enemies, player, wave, survivalTimer) {
-        const { x, y } = this.getRandomSpawnPosition(player);
+        const pos = this.getRandomSpawnPosition(player);
         const type = this.pickEnemyType(wave.rates);
-        
-        enemies.push(new Enemy(x, y, type, survivalTimer));
+        enemies.push(new Enemy(pos.x, pos.y, type, survivalTimer));
     }
 
     spawnBoss(enemies, player, survivalTimer) {
-        const { x, y } = this.getRandomSpawnPosition(player);
-        enemies.push(new Boss(x, y, survivalTimer));
+        const pos = this.getRandomSpawnPosition(player);
+        enemies.push(new Boss(pos.x, pos.y, survivalTimer));
     }
 
     getRandomSpawnPosition(player) {
-        // Spawn in a circle outside the screen bounds (approx 1200px radius)
         const angle = Math.random() * Math.PI * 2;
         const dist = 1200;
         return {
@@ -60,11 +55,10 @@ export default class Spawner {
             cumulative += rates[type];
             if (rand <= cumulative) return type;
         }
-        return 'slime'; // Fallback
+        return 'slime';
     }
 
     getCurrentWave(survivalTimer) {
-        // Returns the wave configuration based on the time elapsed
         const wave = [...WAVE_CONFIG].reverse().find(w => survivalTimer >= w.time);
         return wave || WAVE_CONFIG[0];
     }
