@@ -1,15 +1,15 @@
-import { GameConfig } from '../config/GameConfig.js';
-import { EVOLUTION_DATA } from '../config/EvolutionConfig.js';
+import { GameConfig } from 'src/config/GameConfig.js';
+import { EVOLUTION_DATA } from 'src/config/EvolutionConfig.js';
 import { StorageManager } from './StorageManager.js';
 import { AudioManager } from './AudioManager.js';
-import Player from '../entities/Player.js';
+import Player from 'src/entities/Player.js';
 import Input from './Input.js';
-import WeaponManager from '../systems/WeaponSystem.js';
-import Spawner from '../systems/Spawner.js';
-import CollisionSystem from '../systems/CollisionSystem.js';
+import WeaponManager from 'src/systems/WeaponSystem.js';
+import Spawner from 'src/systems/Spawner.js';
+import CollisionSystem from 'src/systems/CollisionSystem.js';
 import Map from './Map.js';
-import ParticleSystem from '../systems/ParticleSystem.js';
-import { getChoices } from '../systems/UpgradeManager.js';
+import ParticleSystem from 'src/systems/ParticleSystem.js';
+import { getChoices } from 'src/systems/UpgradeManager.js';
 
 export default class Game {
     constructor(canvasId, onGameOver) {
