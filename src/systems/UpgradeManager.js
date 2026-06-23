@@ -1,12 +1,20 @@
-export const UPGRADES = [
-    { id: 'dmg', name: 'Damage +', desc: '+1 Damage' },
-    { id: 'spd', name: 'Fire Rate +', desc: '-0.1s Cooldown' },
-    { id: 'mve', name: 'Speed +', desc: '+50 Move Speed' },
-    { id: 'hp', name: 'Max HP +', desc: '+20 HP' },
-    { id: 'heal', name: 'Heal', desc: 'Restore 20 HP' },
-    { id: 'mag', name: 'Magnet +', desc: '+100 Pickup Range' }
-];
+import { UPGRADE_DATA } from '../config/UpgradesConfig.js';
 
-export function getChoices() {
-    return [...UPGRADES].sort(() => 0.5 - Math.random()).slice(0, 3);
+export function getChoices(player, weaponManager) {
+    let pool = [];
+    
+    // Add valid weapons
+    Object.keys(UPGRADE_DATA.weapons).forEach(id => {
+        const w = weaponManager.weapons.find(w => w.id === id);
+        if (!w || w.level < UPGRADE_DATA.weapons[id].maxLevel) pool.push({ type: 'weapon', id });
+    });
+
+    // Add valid passives
+    Object.keys(UPGRADE_DATA.passives).forEach(id => {
+        const p = player.passives[id] || 0;
+        if (p < UPGRADE_DATA.passives[id].maxLevel) pool.push({ type: 'passive', id });
+    });
+
+    // Shuffle and return 3
+    return pool.sort(() => 0.5 - Math.random()).slice(0, 3);
 }
