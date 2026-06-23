@@ -1,5 +1,5 @@
 
-import { SpriteManager } from '../core/SpriteManager.js';
+import { SpriteManager } from './src/core/SpriteManager.js';
 
 export default class Boss {
     constructor(x, y, survivalTimer) {
