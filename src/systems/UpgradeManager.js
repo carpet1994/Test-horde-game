@@ -1,4 +1,4 @@
-import { UPGRADE_DATA } from '../config/UpgradesConfig.js';
+import { UPGRADE_DATA } from 'src/config/UpgradesConfig.js';
 
 export function getChoices(player, weaponManager) {
     let pool = [];
