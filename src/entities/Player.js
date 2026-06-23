@@ -1,16 +1,28 @@
 export default class Player {
     constructor(x, y) {
         this.x = x; this.y = y; this.size = 182; this.speed = 400;
-        this.lastShot = 0;
+        this.hp = 100; this.maxHp = 100;
+        this.invincible = 0; // i-frame timer
     }
-    update(dt, input) {
-        if (input.keys['w'] || input.keys['ArrowUp']) this.y -= this.speed * dt;
-        if (input.keys['s'] || input.keys['ArrowDown']) this.y += this.speed * dt;
-        if (input.keys['a'] || input.keys['ArrowLeft']) this.x -= this.speed * dt;
-        if (input.keys['d'] || input.keys['ArrowRight']) this.x += this.speed * dt;
+    takeDamage(amount) {
+        if (this.invincible > 0) return;
+        this.hp -= amount;
+        this.invincible = 1.0; // 1 second i-frames
+    }
+    update(dt) {
+        if (this.invincible > 0) this.invincible -= dt;
+        // ... movement logic ...
     }
     draw(ctx, camera) {
+        // Flash if invincible
+        ctx.globalAlpha = (this.invincible > 0 && Math.floor(Date.now() / 100) % 2) ? 0.5 : 1.0;
         ctx.fillStyle = '#00ffcc';
-        ctx.fillRect(this.x - camera.x - this.size/4, this.y - camera.y - this.size/4, this.size/2, this.size/2);
+        ctx.fillRect(this.x - camera.x - 40, this.y - camera.y - 40, 80, 80);
+        ctx.globalAlpha = 1.0;
+        // Health Bar
+        ctx.fillStyle = 'red';
+        ctx.fillRect(this.x - camera.x - 40, this.y - camera.y - 60, 80, 10);
+        ctx.fillStyle = 'lime';
+        ctx.fillRect(this.x - camera.x - 40, this.y - camera.y - 60, 80 * (this.hp/this.maxHp), 10);
     }
 }
