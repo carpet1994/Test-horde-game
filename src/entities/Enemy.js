@@ -1,28 +1,60 @@
 import { GameConfig } from '../config/GameConfig.js';
 
 export default class Enemy {
-    constructor(x, y, type) {
-        const scaling = 1 + (time / 300); // Stats increase by 20% every minute
-    this.hp = Math.floor(baseHp[type] * scaling);
-    this.speed = baseSpeed[type] * (1 + (time / 600));
-        this.x = x; this.y = y;
+    constructor(x, y, type, survivalTimer) {
+        this.x = x;
+        this.y = y;
         this.type = type;
-        this.stats = GameConfig.enemies[type];
-        this.hp = this.stats.hp;
-        this.maxHp = this.stats.hp;
-        this.radius = 30;
+        
+        const baseStats = GameConfig.enemies[type];
+        const scaling = 1 + (survivalTimer / 300);
+        
+        this.maxHp = Math.floor(baseStats.hp * scaling);
+        this.hp = this.maxHp;
+        this.speed = baseStats.speed * (1 + (survivalTimer / 600));
+        
+        this.radius = type === 'crawler' ? 25 : 30;
         this.flash = 0;
     }
+
     update(dt, player) {
         if (this.flash > 0) this.flash -= dt;
+
         const dx = player.x - this.x;
         const dy = player.y - this.y;
         const dist = Math.hypot(dx, dy);
-        this.x += (dx / dist) * this.stats.speed * dt;
-        this.y += (dy / dist) * this.stats.speed * dt;
+
+        if (dist > 1) {
+            this.x += (dx / dist) * this.speed * dt;
+            this.y += (dy / dist) * this.speed * dt;
+        }
     }
+
+    takeDamage(amount, knockbackDir) {
+        this.hp -= amount;
+        this.flash = 0.1;
+        this.x += knockbackDir.x * 20;
+        this.y += knockbackDir.y * 20;
+    }
+
     draw(ctx, camera) {
-        ctx.fillStyle = this.flash > 0 ? 'white' : this.stats.color;
-        ctx.fillRect(this.x - camera.x - this.radius, this.y - camera.y - this.radius, this.radius * 2, this.radius * 2);
+        ctx.fillStyle = this.flash > 0 ? 'white' : GameConfig.enemies[this.type].color;
+        
+        ctx.fillRect(
+            this.x - camera.x - this.radius,
+            this.y - camera.y - this.radius,
+            this.radius * 2,
+            this.radius * 2
+        );
+
+        ctx.fillStyle = 'red';
+        ctx.fillRect(this.x - camera.x - this.radius, this.y - camera.y - this.radius - 10, this.radius * 2, 5);
+        ctx.fillStyle = 'lime';
+        ctx.fillRect(
+            this.x - camera.x - this.radius, 
+            this.y - camera.y - this.radius - 10, 
+            (this.radius * 2) * (this.hp / this.maxHp), 
+            5
+        );
     }
 }
