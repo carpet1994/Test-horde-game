@@ -1,4 +1,4 @@
-import { SpriteManager } from '../core/SpriteManager.js';
+import { SpriteManager } from 'src/core/SpriteManager.js';
 
 export default class XPGem {
     constructor(x, y, value) {
