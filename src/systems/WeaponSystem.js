@@ -1,4 +1,4 @@
-import * as W from '../weapons/WeaponTypes.js';
+import * as W from 'src/weapons/WeaponTypes.js';
 import { EVOLUTION_DATA } from '../config/EvolutionConfig.js';
 
 export default class WeaponManager {
