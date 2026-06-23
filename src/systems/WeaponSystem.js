@@ -1,5 +1,5 @@
 import * as W from 'src/weapons/WeaponTypes.js';
-import { EVOLUTION_DATA } from '../config/EvolutionConfig.js';
+import { EVOLUTION_DATA } from 'src/config/EvolutionConfig.js';
 
 export default class WeaponManager {
     constructor() { this.weapons = [new W.ArcaneBolt()]; }
