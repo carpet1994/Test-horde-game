@@ -18,7 +18,18 @@ export default class WeaponManager {
         if (existing) {
             existing.levelUp();
         } else {
-            // Logic to instantiate new weapon type
+            const newWeapon = this.createNewWeapon(id);
+            if (newWeapon) this.weapons.push(newWeapon);
+        }
+    }
+
+    createNewWeapon(id) {
+        switch(id) {
+            case 'bolt': return new ArcaneBolt();
+            case 'orbit': return new OrbitingBlade();
+            case 'pulse': return new HolyPulse();
+            case 'light': return new LightningMark();
+            default: return null;
         }
     }
 }
