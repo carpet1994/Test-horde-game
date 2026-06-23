@@ -1,4 +1,3 @@
-import { GameConfig } from '../config/GameConfig.js';
 
 import { SpriteManager } from '../core/SpriteManager.js';
 
