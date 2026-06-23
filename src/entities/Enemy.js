@@ -1,4 +1,5 @@
 import { GameConfig } from '../config/GameConfig.js';
+import { SpriteManager } from '../core/SpriteManager.js';
 
 export default class Enemy {
     constructor(x, y, type, survivalTimer) {
@@ -38,14 +39,18 @@ export default class Enemy {
     }
 
     draw(ctx, camera) {
-        ctx.fillStyle = this.flash > 0 ? 'white' : GameConfig.enemies[this.type].color;
-        
-        ctx.fillRect(
-            this.x - camera.x - this.radius,
-            this.y - camera.y - this.radius,
-            this.radius * 2,
-            this.radius * 2
+        const sprite = SpriteManager.cache[this.type] || SpriteManager.cache['slime'];
+        const size = this.radius * 3;
+
+        ctx.globalAlpha = this.flash > 0 ? 0.5 : 1;
+        ctx.drawImage(
+            sprite,
+            this.x - camera.x - size / 2,
+            this.y - camera.y - size / 2,
+            size,
+            size
         );
+        ctx.globalAlpha = 1;
 
         ctx.fillStyle = 'red';
         ctx.fillRect(this.x - camera.x - this.radius, this.y - camera.y - this.radius - 10, this.radius * 2, 5);
