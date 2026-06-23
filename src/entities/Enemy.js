@@ -1,19 +1,23 @@
 export default class Enemy {
     constructor(x, y, type) {
         this.x = x; this.y = y; this.type = type;
-        this.speed = type === 'slime' ? 150 : 250;
-        this.hp = type === 'slime' ? 3 : 1;
-        this.size = 60; // Visual size smaller than source 182
+        this.maxHp = type === 'slime' ? 5 : 2;
+        this.hp = this.maxHp;
+        this.flash = 0;
     }
-    update(dt, player) {
-        let dx = player.x - this.x;
-        let dy = player.y - this.y;
-        let dist = Math.sqrt(dx * dx + dy * dy);
-        this.x += (dx / dist) * this.speed * dt;
-        this.y += (dy / dist) * this.speed * dt;
+    takeDamage(amount, knockbackDir) {
+        this.hp -= amount;
+        this.flash = 0.1;
+        this.x += knockbackDir.x * 20; // Knockback
+        this.y += knockbackDir.y * 20;
     }
     draw(ctx, camera) {
-        ctx.fillStyle = this.type === 'slime' ? '#77ff77' : '#ff7777';
-        ctx.fillRect(this.x - camera.x - this.size/2, this.y - camera.y - this.size/2, this.size, this.size);
+        ctx.fillStyle = this.flash > 0 ? 'white' : (this.type === 'slime' ? '#77ff77' : '#ff7777');
+        ctx.fillRect(this.x - camera.x - 30, this.y - camera.y - 30, 60, 60);
+        // Bar
+        ctx.fillStyle = 'red';
+        ctx.fillRect(this.x - camera.x - 30, this.y - camera.y - 45, 60, 5);
+        ctx.fillStyle = 'lime';
+        ctx.fillRect(this.x - camera.x - 30, this.y - camera.y - 45, 60 * (this.hp/this.maxHp), 5);
     }
 }
