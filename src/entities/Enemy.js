@@ -1,23 +1,25 @@
+import { GameConfig } from '../config/GameConfig.js';
+
 export default class Enemy {
     constructor(x, y, type) {
-        this.x = x; this.y = y; this.type = type;
-        this.maxHp = type === 'slime' ? 5 : 2;
-        this.hp = this.maxHp;
+        this.x = x; this.y = y;
+        this.type = type;
+        this.stats = GameConfig.enemies[type];
+        this.hp = this.stats.hp;
+        this.maxHp = this.stats.hp;
+        this.radius = 30;
         this.flash = 0;
     }
-    takeDamage(amount, knockbackDir) {
-        this.hp -= amount;
-        this.flash = 0.1;
-        this.x += knockbackDir.x * 20; // Knockback
-        this.y += knockbackDir.y * 20;
+    update(dt, player) {
+        if (this.flash > 0) this.flash -= dt;
+        const dx = player.x - this.x;
+        const dy = player.y - this.y;
+        const dist = Math.hypot(dx, dy);
+        this.x += (dx / dist) * this.stats.speed * dt;
+        this.y += (dy / dist) * this.stats.speed * dt;
     }
     draw(ctx, camera) {
-        ctx.fillStyle = this.flash > 0 ? 'white' : (this.type === 'slime' ? '#77ff77' : '#ff7777');
-        ctx.fillRect(this.x - camera.x - 30, this.y - camera.y - 30, 60, 60);
-        // Bar
-        ctx.fillStyle = 'red';
-        ctx.fillRect(this.x - camera.x - 30, this.y - camera.y - 45, 60, 5);
-        ctx.fillStyle = 'lime';
-        ctx.fillRect(this.x - camera.x - 30, this.y - camera.y - 45, 60 * (this.hp/this.maxHp), 5);
+        ctx.fillStyle = this.flash > 0 ? 'white' : this.stats.color;
+        ctx.fillRect(this.x - camera.x - this.radius, this.y - camera.y - this.radius, this.radius * 2, this.radius * 2);
     }
 }
