@@ -1,10 +1,21 @@
+import { SpriteManager } from '../core/SpriteManager.js';
+
 export default class Chest {
     constructor(x, y) {
-        this.x = x; this.y = y;
-        this.isOpened = false;
+        this.x = x;
+        this.y = y;
+        this.radius = 40;
     }
+
     draw(ctx, camera) {
-        ctx.fillStyle = '#ffcc00'; // Gold
-        ctx.fillRect(this.x - camera.x - 25, this.y - camera.y - 25, 50, 50);
+        const sprite = SpriteManager.cache['chest'];
+        const size = this.radius * 2;
+        ctx.drawImage(
+            sprite,
+            this.x - camera.x - size / 2,
+            this.y - camera.y - size / 2,
+            size,
+            size
+        );
     }
 }
