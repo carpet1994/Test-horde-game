@@ -1,18 +1,24 @@
-export default class WeaponSystem {
-    constructor() { this.projectiles = []; this.timer = 0; }
+import { ArcaneBolt, OrbitingBlade, HolyPulse, LightningMark } from '../weapons/WeaponTypes.js';
+
+export default class WeaponManager {
+    constructor() {
+        this.weapons = [new ArcaneBolt()];
+    }
+
     update(dt, player, enemies) {
-        this.timer += dt;
-        if (this.timer >= 0.6 && enemies.length > 0) {
-            let target = enemies[0]; // Simplest: target first in array
-            this.projectiles.push({ x: player.x, y: player.y, targetX: target.x, targetY: target.y, speed: 600 });
-            this.timer = 0;
+        this.weapons.forEach(w => w.update(dt, player, enemies));
+    }
+
+    draw(ctx, camera) {
+        this.weapons.forEach(w => w.draw(ctx, camera));
+    }
+
+    addOrUpgradeWeapon(id) {
+        const existing = this.weapons.find(w => w.id === id);
+        if (existing) {
+            existing.levelUp();
+        } else {
+            // Logic to instantiate new weapon type
         }
-        this.projectiles.forEach((p, i) => {
-            let dx = p.targetX - p.x; let dy = p.targetY - p.y;
-            let dist = Math.sqrt(dx*dx + dy*dy);
-            p.x += (dx / dist) * p.speed * dt;
-            p.y += (dy / dist) * p.speed * dt;
-            if (dist < 10) this.projectiles.splice(i, 1);
-        });
     }
 }
