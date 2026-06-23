@@ -1,7 +1,7 @@
 import { GameConfig } from '../config/GameConfig.js';
 import Player from '../entities/Player.js';
 import Input from './Input.js';
-import WeaponSystem from '../systems/WeaponSystem.js';
+import WeaponManager from '../systems/WeaponSystem.js';
 import Spawner from '../systems/Spawner.js';
 import CollisionSystem from '../systems/CollisionSystem.js';
 import { getChoices } from '../systems/UpgradeManager.js';
@@ -15,23 +15,25 @@ export default class Game {
 
         this.input = new Input();
         this.player = new Player(960, 540);
-        this.weaponSystem = new WeaponSystem();
+        this.weaponManager = new WeaponManager();
         this.spawner = new Spawner();
         
         this.enemies = [];
         this.gems = [];
-        this.floatingTexts = [];
-        
+        this.chests = [];
         this.killCount = 0;
         this.survivalTimer = 0;
         this.lastTime = 0;
+        
         this.running = true;
         this.isLevelingUp = false;
+        this.isChestState = false;
         this.currentChoices = [];
+        this.reward = null;
         this.shake = 0;
     }
 
-    start() {
+start() {
         requestAnimationFrame(this.loop.bind(this));
     }
 
@@ -39,7 +41,7 @@ export default class Game {
         let dt = Math.min((timestamp - this.lastTime) / 1000, 0.1);
         this.lastTime = timestamp;
 
-        if (this.running && !this.isLevelingUp) {
+        if (this.running && !this.isLevelingUp && !this.isChestState) {
             this.update(dt);
         }
         
@@ -50,55 +52,60 @@ export default class Game {
 
     update(dt) {
         this.survivalTimer += dt;
-        this.player.update(dt, this.input);
-        this.spawner.update(dt, this.enemies, this.player);
-        this.weaponSystem.update(dt, this.player, this.enemies);
-        
-        CollisionSystem.update(this);
+        if (this.shake > 0) this.shake -= dt * 10;
 
+        this.player.update(dt, this.input);
+        this.spawner.update(dt, this.enemies, this.player, this.survivalTimer);
+        this.weaponManager.update(dt, this.player, this.enemies);
+        CollisionSystem.update(this);
+        
         this.gems.forEach((gem, i) => {
             gem.update(dt, this.player);
-            let dist = Math.hypot(gem.x - this.player.x, gem.y - this.player.y);
-            if (dist < 40) {
+            if (Math.hypot(gem.x - this.player.x, gem.y - this.player.y) < 40) {
                 this.player.addXP(gem.value);
                 this.gems.splice(i, 1);
                 if (this.player.checkLevelUp()) this.triggerLevelUp();
             }
         });
-    }
 
+        this.chests.forEach((chest, i) => {
+            if (Math.hypot(chest.x - this.player.x, chest.y - this.player.y) < 60) {
+                this.triggerChestReward();
+                this.chests.splice(i, 1);
+            }
+        });
+    }
     triggerLevelUp() {
         this.isLevelingUp = true;
-        this.currentChoices = getChoices();
+        this.currentChoices = getChoices(this.player, this.weaponManager);
     }
 
-    handleUpgradeSelection(index) {
-        const choice = this.currentChoices[index];
-        this.player.applyUpgrade(choice.id);
-        this.isLevelingUp = false;
+    triggerChestReward() {
+        this.isChestState = true;
+        this.reward = { name: "Random Upgrade" }; 
     }
 
     draw() {
-        // Camera shake
         let camX = this.player.x - 960 + (Math.random() - 0.5) * this.shake * 10;
         let camY = this.player.y - 540 + (Math.random() - 0.5) * this.shake * 10;
         let camera = { x: camX, y: camY };
 
         this.ctx.fillStyle = '#000';
-        this.ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+        this.ctx.fillRect(0, 0, 1920, 1080);
 
         this.player.draw(this.ctx, camera);
         this.enemies.forEach(e => e.draw(this.ctx, camera));
         this.gems.forEach(g => g.draw(this.ctx, camera));
-        this.weaponSystem.draw(this.ctx, camera);
-
+        this.chests.forEach(c => c.draw(this.ctx, camera));
+        this.weaponManager.draw(this.ctx, camera);
+        
         this.drawUI();
         if (this.isLevelingUp) this.drawLevelUpMenu();
+        if (this.isChestState) this.drawChestScreen();
         if (!this.running) this.drawGameOver();
     }
 
     drawUI() {
-        // XP Bar
         this.ctx.fillStyle = '#222';
         this.ctx.fillRect(0, 1070, 1920, 10);
         this.ctx.fillStyle = '#00ccff';
@@ -107,6 +114,7 @@ export default class Game {
         this.ctx.fillStyle = 'white';
         this.ctx.font = '30px Arial';
         this.ctx.fillText(`Level: ${this.player.level} | Kills: ${this.killCount}`, 50, 50);
+        this.ctx.fillText(`Time: ${Math.floor(this.survivalTimer)}s`, 50, 90);
     }
 
     drawLevelUpMenu() {
@@ -114,15 +122,30 @@ export default class Game {
         this.ctx.fillRect(0, 0, 1920, 1080);
         this.ctx.fillStyle = 'white';
         this.ctx.textAlign = 'center';
-        this.ctx.fillText('LEVEL UP! Choose an upgrade:', 960, 300);
+        this.ctx.font = '60px Arial';
+        this.ctx.fillText('LEVEL UP!', 960, 200);
         
         this.currentChoices.forEach((c, i) => {
             this.ctx.strokeRect(660 + (i * 200), 400, 180, 200);
-            this.ctx.fillText(c.name, 750 + (i * 200), 450);
-            this.ctx.font = '16px Arial';
-            this.ctx.fillText(c.desc, 750 + (i * 200), 500);
+            this.ctx.fillText(c.id, 750 + (i * 200), 450);
         });
     }
+    drawChestScreen() {
+        this.ctx.fillStyle = 'rgba(255, 215, 0, 0.9)';
+        this.ctx.fillRect(400, 200, 1120, 680);
+        this.ctx.fillStyle = 'black';
+        this.ctx.textAlign = 'center';
+        this.ctx.font = '80px Arial';
+        this.ctx.fillText("Treasure Found!", 960, 400);
+        this.ctx.fillText("Press SPACE to claim", 960, 600);
+    }
 
-    drawGameOver() { /* Same as previous implementation */ }
+    drawGameOver() {
+        this.ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        this.ctx.fillRect(0, 0, 1920, 1080);
+        this.ctx.fillStyle = 'white';
+        this.ctx.textAlign = 'center';
+        this.ctx.font = '80px Arial';
+        this.ctx.fillText('GAME OVER', 960, 540);
+    }
 }
