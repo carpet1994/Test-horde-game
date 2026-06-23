@@ -6,38 +6,65 @@ export const GameConfig = {
     player: {
         hp: 100,
         speed: 400,
-        size: 80,
-        magnetRange: 200
+        magnetRange: 200,
+        baseDamage: 10,
+        attackCooldown: 1.0
     },
     enemies: {
         slime: {
-            hp: 5,
-            speed: 150,
-            color: '#77ff77'
+            hp: 15,
+            speed: 120,
+            damage: 5,
+            xpValue: 1
         },
         bat: {
-            hp: 2,
-            speed: 250,
-            color: '#ff7777'
+            hp: 8,
+            speed: 220,
+            damage: 3,
+            xpValue: 2
         },
         brute: {
-            hp: 20,
-            speed: 100,
-            color: '#7777ff'
+            hp: 60,
+            speed: 80,
+            damage: 15,
+            xpValue: 5
         },
         crawler: {
-            hp: 8,
-            speed: 200,
-            color: '#ffff77'
+            hp: 25,
+            speed: 160,
+            damage: 8,
+            xpValue: 3
+        },
+        elite: {
+            hp: 150,
+            speed: 100,
+            damage: 20,
+            xpValue: 15
+        },
+        boss: {
+            hp: 1000,
+            speed: 90,
+            damage: 30,
+            xpValue: 100
         }
     },
-    weapon: {
-        cooldown: 0.6,
-        projectileSpeed: 600,
-        damage: 1
+    scaling: {
+        hpMult: 0.15,
+        speedMult: 0.05,
+        spawnRateMult: 0.2,
+        intervalSeconds: 30
     },
-    spawnSettings: {
-        maxEnemies: 200,
-        bossInterval: 120
+    xp: {
+        baseRequired: 10,
+        exponent: 1.25
+    },
+    shop: {
+        upgrades: {
+            maxHp: { baseCost: 50, costMultiplier: 1.5, increment: 5 },
+            damage: { baseCost: 50, costMultiplier: 1.5, increment: 0.05 },
+            moveSpeed: { baseCost: 50, costMultiplier: 1.5, increment: 0.03 },
+            xpGain: { baseCost: 50, costMultiplier: 1.5, increment: 0.05 },
+            pickupRange: { baseCost: 50, costMultiplier: 1.5, increment: 0.05 }
+        }
     }
 };
