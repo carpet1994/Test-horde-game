@@ -1,5 +1,5 @@
-import { GameConfig } from '../config/GameConfig.js';
-import { SpriteManager } from '../core/SpriteManager.js';
+import { GameConfig } from 'src/config/GameConfig.js';
+import { SpriteManager } from 'src/core/SpriteManager.js';
 
 export default class Player {
     constructor(x, y) {
