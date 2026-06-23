@@ -1,4 +1,5 @@
 import { GameConfig } from '../config/GameConfig.js';
+import { EVOLUTION_DATA } from '../config/EvolutionConfig.js';
 import Player from '../entities/Player.js';
 import Input from './Input.js';
 import WeaponManager from '../systems/WeaponSystem.js';
@@ -21,19 +22,20 @@ export default class Game {
         this.enemies = [];
         this.gems = [];
         this.chests = [];
+        this.floatingTexts = [];
+        
         this.killCount = 0;
         this.survivalTimer = 0;
         this.lastTime = 0;
-        
         this.running = true;
         this.isLevelingUp = false;
         this.isChestState = false;
         this.currentChoices = [];
-        this.reward = null;
+        this.evolutionAvailable = null;
         this.shake = 0;
     }
 
-start() {
+    start() {
         requestAnimationFrame(this.loop.bind(this));
     }
 
@@ -75,6 +77,7 @@ start() {
             }
         });
     }
+
     triggerLevelUp() {
         this.isLevelingUp = true;
         this.currentChoices = getChoices(this.player, this.weaponManager);
@@ -82,7 +85,19 @@ start() {
 
     triggerChestReward() {
         this.isChestState = true;
-        this.reward = { name: "Random Upgrade" }; 
+        this.evolutionAvailable = null;
+        for (const [id, data] of Object.entries(EVOLUTION_DATA)) {
+            const w = this.weaponManager.weapons.find(wp => wp.id === id);
+            if (w && w.level === 8 && this.player.passives[data.passive] >= 1) {
+                this.evolutionAvailable = id;
+                break;
+            }
+        }
+    }
+
+    handleChestClaim() {
+        if (this.evolutionAvailable) this.weaponManager.evolveWeapon(this.evolutionAvailable);
+        this.isChestState = false;
     }
 
     draw() {
@@ -130,13 +145,14 @@ start() {
             this.ctx.fillText(c.id, 750 + (i * 200), 450);
         });
     }
+
     drawChestScreen() {
         this.ctx.fillStyle = 'rgba(255, 215, 0, 0.9)';
         this.ctx.fillRect(400, 200, 1120, 680);
         this.ctx.fillStyle = 'black';
         this.ctx.textAlign = 'center';
         this.ctx.font = '80px Arial';
-        this.ctx.fillText("Treasure Found!", 960, 400);
+        this.ctx.fillText(this.evolutionAvailable ? "WEAPON EVOLVED!" : "Treasure Found!", 960, 400);
         this.ctx.fillText("Press SPACE to claim", 960, 600);
     }
 
@@ -148,4 +164,4 @@ start() {
         this.ctx.font = '80px Arial';
         this.ctx.fillText('GAME OVER', 960, 540);
     }
-}
+            }
