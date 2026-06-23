@@ -1,6 +1,6 @@
-import { WAVE_CONFIG } from '../config/WaveConfig.js';
-import Enemy from '../entities/Enemy.js';
-import Boss from '../entities/Boss.js';
+import { WAVE_CONFIG } from 'src/config/WaveConfig.js';
+import Enemy from 'src/entities/Enemy.js';
+import Boss from 'src/entities/Boss.js';
 
 export default class Spawner {
     constructor() {
