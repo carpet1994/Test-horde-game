@@ -1,5 +1,6 @@
 import { GameConfig } from '../config/GameConfig.js';
 import { EVOLUTION_DATA } from '../config/EvolutionConfig.js';
+import { StorageManager } from './StorageManager.js';
 import Player from '../entities/Player.js';
 import Input from './Input.js';
 import WeaponManager from '../systems/WeaponSystem.js';
@@ -8,7 +9,7 @@ import CollisionSystem from '../systems/CollisionSystem.js';
 import { getChoices } from '../systems/UpgradeManager.js';
 
 export default class Game {
-    constructor(canvasId) {
+    constructor(canvasId, onGameOver) {
         this.canvas = document.getElementById(canvasId);
         this.ctx = this.canvas.getContext('2d');
         this.canvas.width = GameConfig.resolution.width;
@@ -18,21 +19,21 @@ export default class Game {
         this.player = new Player(960, 540);
         this.weaponManager = new WeaponManager();
         this.spawner = new Spawner();
+        this.onGameOver = onGameOver;
         
         this.enemies = [];
         this.gems = [];
         this.chests = [];
-        this.floatingTexts = [];
+        this.runStats = { time: 0, kills: 0, bosses: 0, earnedCoins: 0 };
         
-        this.killCount = 0;
         this.survivalTimer = 0;
         this.lastTime = 0;
         this.running = true;
         this.isLevelingUp = false;
         this.isChestState = false;
+        this.gameOver = false;
         this.currentChoices = [];
         this.evolutionAvailable = null;
-        this.shake = 0;
     }
 
     start() {
@@ -54,13 +55,15 @@ export default class Game {
 
     update(dt) {
         this.survivalTimer += dt;
-        if (this.shake > 0) this.shake -= dt * 10;
-
         this.player.update(dt, this.input);
         this.spawner.update(dt, this.enemies, this.player, this.survivalTimer);
         this.weaponManager.update(dt, this.player, this.enemies);
         CollisionSystem.update(this);
         
+        if (this.player.hp <= 0) {
+            this.triggerGameOver();
+        }
+
         this.gems.forEach((gem, i) => {
             gem.update(dt, this.player);
             if (Math.hypot(gem.x - this.player.x, gem.y - this.player.y) < 40) {
@@ -100,9 +103,19 @@ export default class Game {
         this.isChestState = false;
     }
 
+    triggerGameOver() {
+        this.running = false;
+        this.gameOver = true;
+        this.runStats.time = Math.floor(this.survivalTimer);
+        const data = StorageManager.load();
+        data.coins += this.runStats.earnedCoins;
+        StorageManager.save(data);
+        this.onGameOver(this.runStats);
+    }
+
     draw() {
-        let camX = this.player.x - 960 + (Math.random() - 0.5) * this.shake * 10;
-        let camY = this.player.y - 540 + (Math.random() - 0.5) * this.shake * 10;
+        let camX = this.player.x - 960;
+        let camY = this.player.y - 540;
         let camera = { x: camX, y: camY };
 
         this.ctx.fillStyle = '#000';
@@ -117,19 +130,14 @@ export default class Game {
         this.drawUI();
         if (this.isLevelingUp) this.drawLevelUpMenu();
         if (this.isChestState) this.drawChestScreen();
-        if (!this.running) this.drawGameOver();
+        if (this.gameOver) this.drawGameOver();
     }
 
     drawUI() {
-        this.ctx.fillStyle = '#222';
-        this.ctx.fillRect(0, 1070, 1920, 10);
-        this.ctx.fillStyle = '#00ccff';
-        this.ctx.fillRect(0, 1070, 1920 * (this.player.xp / this.player.xpRequired), 10);
-        
         this.ctx.fillStyle = 'white';
         this.ctx.font = '30px Arial';
-        this.ctx.fillText(`Level: ${this.player.level} | Kills: ${this.killCount}`, 50, 50);
-        this.ctx.fillText(`Time: ${Math.floor(this.survivalTimer)}s`, 50, 90);
+        this.ctx.fillText(`Coins: ${this.runStats.earnedCoins}`, 1700, 50);
+        this.ctx.fillText(`Time: ${Math.floor(this.survivalTimer)}s`, 50, 50);
     }
 
     drawLevelUpMenu() {
@@ -137,9 +145,7 @@ export default class Game {
         this.ctx.fillRect(0, 0, 1920, 1080);
         this.ctx.fillStyle = 'white';
         this.ctx.textAlign = 'center';
-        this.ctx.font = '60px Arial';
         this.ctx.fillText('LEVEL UP!', 960, 200);
-        
         this.currentChoices.forEach((c, i) => {
             this.ctx.strokeRect(660 + (i * 200), 400, 180, 200);
             this.ctx.fillText(c.id, 750 + (i * 200), 450);
@@ -151,17 +157,15 @@ export default class Game {
         this.ctx.fillRect(400, 200, 1120, 680);
         this.ctx.fillStyle = 'black';
         this.ctx.textAlign = 'center';
-        this.ctx.font = '80px Arial';
         this.ctx.fillText(this.evolutionAvailable ? "WEAPON EVOLVED!" : "Treasure Found!", 960, 400);
-        this.ctx.fillText("Press SPACE to claim", 960, 600);
     }
 
     drawGameOver() {
-        this.ctx.fillStyle = 'rgba(0,0,0,0.8)';
+        this.ctx.fillStyle = 'rgba(0,0,0,0.9)';
         this.ctx.fillRect(0, 0, 1920, 1080);
         this.ctx.fillStyle = 'white';
         this.ctx.textAlign = 'center';
-        this.ctx.font = '80px Arial';
         this.ctx.fillText('GAME OVER', 960, 540);
+        this.ctx.fillText(`Total Coins Earned: ${this.runStats.earnedCoins}`, 960, 640);
     }
             }
